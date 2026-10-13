@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>旁译 · OCR 离屏文档</title>
+</head>
+<body>
+<!--
+  为什么会有这个文件：
+  Chrome / Edge 的 MV3 后台是 service worker——没有 DOM，也不能用 Blob URL 建 Worker，
+  Tesseract.js 在那儿根本起不来。所以把它挪到这个离屏文档里跑（chrome.offscreen，Chrome 109+），
+  后台只负责把图递过来、把结果拿回去。
+  Firefox 侧不需要它：那边后台是常驻页，manifest 已经把 tesseract.min.js 加载成全局了。
+-->
+<script src="tesseract.min.js"></script>
+<script src="offscreen.js"></script>
+</body>
+</html>

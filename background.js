@@ -46,6 +46,17 @@ function noteFail(step, detail, extra) {
   } catch (e) {}
 }
 
+/* ------------------------------------------------------------
+ * 运行环境的差别收在这一小块里：
+ *   Firefox  → MV2，后台是常驻页，chrome.browserAction，Tesseract 直接当全局用
+ *   Chrome / Edge → MV3，后台是 service worker，chrome.action，没有 DOM（OCR 得走离屏文档）
+ * 其余代码两边共用。
+ * ------------------------------------------------------------ */
+const IS_SW = (typeof document === 'undefined');            // service worker 里没有 document
+const HAS_TESSERACT = (typeof Tesseract !== 'undefined');   // Firefox 侧被 manifest 加载成全局
+const ACTION = chrome.action || chrome.browserAction;       // 工具栏按钮
+const MENU_CTX = chrome.action ? 'action' : 'browser_action';  // 右键菜单挂到哪种按钮上
+
 /* ---------- 结果缓存 ----------
    同一段反复翻，不必反复花钱、反复等。十分钟内同一请求直接给旧结果。 */
 const CACHE_TTL = 10 * 60 * 1000;
@@ -378,6 +389,13 @@ async function translate(text, opt) {
 
 /* ============================================================
  * OCR（Tesseract.js / WASM，全程本地，不出网、不起进程）
+ *
+ * 两种宿主：
+ *   Firefox  = 后台常驻页，manifest 把 tesseract.min.js 加载成全局，直接跑（ocrImageLocal）。
+ *   Chromium = 后台是 service worker，没 DOM、不能用 Blob 建 Worker，
+ *              Tesseract 放到离屏文档里跑（offscreen.html + offscreen.js），
+ *              这里只负责递图、拿结果（ocrImageOffscreen）。
+ *   对外只有 ocrImage(dataUrl) → { ok, text, conf, langs }。
  * ============================================================ */
 let ocrWorker = null;
 let ocrBooting = null;
@@ -428,6 +446,12 @@ function tidyOcr(t) {
 }
 
 async function ocrImage(dataUrl) {
+  if (HAS_TESSERACT) return ocrImageLocal(dataUrl);
+  return ocrImageOffscreen(dataUrl);
+}
+
+/* —— Firefox：本地直接跑 —— */
+async function ocrImageLocal(dataUrl) {
   const w = await getOcrWorker();
   const r = await w.recognize(dataUrl);
   const text = tidyOcr(r && r.data && r.data.text);
@@ -436,6 +460,48 @@ async function ocrImage(dataUrl) {
     ok: true, text: text, engine: 'Tesseract(本地)',
     conf: conf, langs: ocrState.langs
   };
+}
+
+/* —— Chromium：把图递给离屏文档 —— */
+async function ocrImageOffscreen(dataUrl) {
+  await ensureOffscreen();
+  const r = await new Promise(resolve => {
+    try {
+      chrome.runtime.sendMessage({ type: 'ocr-run', image: dataUrl, to: 'offscreen' }, resp => {
+        void chrome.runtime.lastError;
+        resolve(resp);
+      });
+    } catch (e) { resolve(null); }
+  });
+  if (!r || !r.ok) {
+    ocrState.ok = false;
+    ocrState.error = (r && r.error) || '离屏文档没有回应';
+    throw new Error(ocrState.error);
+  }
+  ocrState.ok = true;
+  ocrState.error = null;
+  if (r.langs) ocrState.langs = r.langs;
+  return r;
+}
+
+/* 离屏文档同时只允许一个：先问有没有，没有才建。
+   （getContexts 要 Chrome 116+；低版本靠 createDocument 报的错兜底。） */
+async function ensureOffscreen() {
+  try {
+    if (chrome.runtime.getContexts) {
+      const ctxs = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+      if (ctxs && ctxs.length) return;
+    }
+    await chrome.offscreen.createDocument({
+      url: 'offscreen.html',
+      reasons: ['WORKERS'],
+      justification: '本地 OCR：Tesseract 需要在有 DOM 的上下文里起 Worker'
+    });
+  } catch (e) {
+    /* “已经有离屏文档了”——那正是我们要的状态，不当错误 */
+    const msg = String((e && e.message) || e);
+    if (msg.indexOf('single offscreen') === -1 && msg.indexOf('已有') === -1) throw e;
+  }
 }
 
 function captureTab() {
@@ -487,6 +553,7 @@ function humanEngineError(err, mode) {
 /* ---------- 消息路由 ---------- */
 chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
   if (!m || !m.type) return;
+  if (m.to === 'offscreen') return;   // 那条是给离屏文档的，后台别抢着回
 
   if (m.type === 'translate') {
     /* 配着内容脚本的分段走，单次不会超过几百字符；这个上限只是兜底。
@@ -552,7 +619,16 @@ chrome.runtime.onMessage.addListener((m, sender, sendResponse) => {
   }
 
   if (m.type === 'ocrWarmup') {
-    getOcrWorker()
+    /* 预热也分两种宿主：Chromium 得先把离屏文档叫起来（首次建造比较慢） */
+    const warm = HAS_TESSERACT
+      ? getOcrWorker()
+      : ensureOffscreen().then(() => new Promise(resolve => {
+          chrome.runtime.sendMessage({ type: 'ocr-warmup', to: 'offscreen' }, resp => {
+            void chrome.runtime.lastError;
+            if (resp && resp.ok) resolve(); else throw new Error((resp && resp.error) || '离屏预热没有回应');
+          });
+        }));
+    warm
       .then(() => sendResponse({ ok: true, diag: ocrState }))
       .catch(e => sendResponse({ ok: false, error: String((e && e.message) || e), diag: ocrState }));
     return true;
@@ -575,13 +651,13 @@ chrome.runtime.onInstalled.addListener(() => {
     if (Object.keys(patch).length) chrome.storage.local.set(patch);
   });
   try {
-    chrome.contextMenus.create({ id: 'sidtrans-settings', title: '旁译 · 设置', contexts: ['browser_action'] });
+    chrome.contextMenus.create({ id: 'sidtrans-settings', title: '旁译 · 设置', contexts: [MENU_CTX] });
   } catch (e) {}
 });
 
 /* 点工具栏图标 → 让当前页进入「框选取字」模式 */
-if (chrome.browserAction && chrome.browserAction.onClicked) {
-  chrome.browserAction.onClicked.addListener((tab) => {
+if (ACTION && ACTION.onClicked) {
+  ACTION.onClicked.addListener((tab) => {
     if (!tab || tab.id == null) return;
     chrome.tabs.sendMessage(tab.id, { type: 'pick' }, () => { void chrome.runtime.lastError; });
   });

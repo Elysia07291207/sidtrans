@@ -5,6 +5,8 @@
 #   2) node --check
 #   3) 三个离线测试：分段 / 答题解析 / 后台三件
 #   4) Edge 无头跑 devtest.html，抓 #out，扫有没有 ✗
+#   5) 设置页自检（预设 / 主题 / 保存不丢字段）
+#   6) 打包 + 包完整性（manifest 引用的文件必须在产物里）
 #
 # 用法：powershell -ExecutionPolicy Bypass -File .\selftest.ps1
 param(
@@ -87,6 +89,13 @@ if (-not $SkipBrowser) {
     }
   }
 }
+
+Write-Host ''
+Write-Host '=== 6) 打包 + 包完整性 ===' -ForegroundColor Cyan
+& powershell -ExecutionPolicy Bypass -File (Join-Path $root 'build.ps1') | Out-Null
+$packOut = & node (Join-Path $here 'check_packages.mjs') 2>&1 | Out-String
+Write-Host $packOut.TrimEnd()
+if ($packOut -match '✗|×') { $bad++ }
 
 Write-Host ''
 if ($bad -eq 0) { Write-Host '=== 全绿，可以打包了 ===' -ForegroundColor Green }
