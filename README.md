@@ -3,8 +3,8 @@
 划词即译，**译文落在选区旁边**。一个纯前端的浏览器扩展：不弹窗、不切屏、不抢焦点，
 翻译和取字都待在你正在看的那一页里。
 
-它来自 [FlashTrans](https://github.com/chai1220/FlashTrans)（一个 Tauri 桌面程序）的交互想法：
-FlashTrans 靠全局热键 + 置顶小窗，按下去浏览器会失焦；旁译把同一件事做进页面内部。
+它来自 [FlashTrans](https://github.com/chai1220/FlashTrans)（MIT）的交互想法：FlashTrans 是个 Tauri 桌面程序，
+靠全局热键 + 置顶小窗，按下去浏览器会失焦；旁译把同一件事做进页面内部。详见 [THIRD-PARTY.md](THIRD-PARTY.md)。
 
 当前版本 **0.4.0**，只在 Firefox 上可用；Chrome / Edge 的适配还在做（见下方「浏览器支持」）。
 
@@ -178,6 +178,13 @@ powershell -ExecutionPolicy Bypass -File .\_ocr_dev\selftest.ps1
 扩展里带「做题」模式，本意是自用的学习与练习辅助。**请在你所在考试、竞赛或平台规则允许的范围内使用**；
 把它用在明文禁止的场合，后果由使用者自负。
 
-## 许可
+## 来源与许可
 
-[MIT](LICENSE)。构建产物里打包了 tesseract.js 与语言模型（均为 Apache-2.0），见 LICENSE 末尾的第三方说明。
+交互想法来自 [FlashTrans](https://github.com/chai1220/FlashTrans)（chai1220，MIT 许可）——
+一个 Tauri + Rust 写的桌面翻译程序：划词、浮层落在选区旁边、不打断手上的事。
+旁译把同一件事**搬进了浏览器内部**（页面内浮层，不产生第二个窗口），并在它之上做了
+长文分段、三种模式（翻译 / 做题 / 术语）、本地 OCR 取字、双主题等扩展。
+**本仓库不含 FlashTrans 的代码**，是照着它的交互重新实现的。
+
+本项目 [MIT](LICENSE)。构建产物里打包的第三方组件（tesseract.js 与语言模型，Apache-2.0）见
+[THIRD-PARTY.md](THIRD-PARTY.md)。
