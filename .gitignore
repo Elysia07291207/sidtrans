@@ -39,3 +39,6 @@ _设计/
 *.secret
 .env
 .env.*
+
+# 不属于本项目：别的任务留下的脚本（里面有本机路径），不进仓库
+_ocr_dev/ocr_batch_xhs.mjs
