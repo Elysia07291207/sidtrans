@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PANGYI-LINK-IMG-TEST</title>
+<style>
+  body{font-family:"Microsoft YaHei",sans-serif;background:#faf8f5;margin:0;padding:24px}
+  a{display:inline-block}
+  img{display:block;border:1px solid #ddd;background:#fff}
+  .note{margin-top:14px;color:#888;font-size:13px}
+</style>
+</head>
+<body>
+<h3>图片包在链接里 —— 模拟真实站点</h3>
+<a id="lnk" href="https://example.com/should-not-navigate"><img id="shot" src="test.png" width="720" height="160" alt="测试图"></a>
+<p class="note">脚本会依次派发 mousedown / mouseup / click ×2 + dblclick，模拟一次真正的双击。</p>
+
+<script>
+(function () {
+  var n = 0, done = false, fired = 0;
+  var img = document.getElementById('shot');
+
+  function ev(type, extra) {
+    var r = img.getBoundingClientRect();
+    var o = Object.assign({ bubbles: true, cancelable: true, view: window, button: 0,
+                            clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }, extra || {});
+    return new MouseEvent(type, o);
+  }
+
+  function oneClick() {
+    img.dispatchEvent(ev('mousedown'));
+    img.dispatchEvent(ev('mouseup'));
+    img.dispatchEvent(ev('click'));
+  }
+
+  function doubleClick() {
+    oneClick();
+    oneClick();
+    img.dispatchEvent(ev('dblclick', { detail: 2 }));
+    fired++;
+  }
+
+  var iv = setInterval(function () {
+    n++;
+    if (done) return;
+    var h = document.getElementById('__sidtrans_host__');
+    if (!h) {
+      if (n === 1) doubleClick();          // ← 只发一次完整双击，模拟真实手势
+      document.title = 'NO_HOST_' + n + '_fired' + fired;
+      return;
+    }
+    var vis = getComputedStyle(h).visibility;
+    var d = h.shadowRoot && h.shadowRoot.querySelector('.st-dst');
+    var s = h.shadowRoot && h.shadowRoot.querySelector('.st-src');
+    var e = h.shadowRoot && h.shadowRoot.querySelector('.st-engine');
+    var dst = d ? (d.textContent || '') : '';
+    var src = s ? (s.textContent || '') : '';
+    if (dst && dst !== '取字中…' && dst !== '翻译中…' && dst !== '（正在看图…）') {
+      // 拿到结果后不再重试，只盯“它还在不在”
+      document.title = 'RESULT[' + n + ']vis=' + vis + '|OCR:' + src.slice(0, 40) + '|TR:' + dst.slice(0, 40);
+      if (n > 16) { done = true; clearInterval(iv); document.title = 'FINAL_vis=' + vis + '|' + document.title; }
+    } else {
+      document.title = 'HOST_OK[' + n + ']vis=' + vis + '|' + dst.slice(0, 24);
+    }
+  }, 800);
+})();
+</script>
+</body>
+</html>

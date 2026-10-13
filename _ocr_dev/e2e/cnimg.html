@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>旁译 · 中文图片取字测试</title>
+<style>
+  body{margin:28px;font:14px/1.7 "Microsoft YaHei",sans-serif;background:#f3efe9;color:#333}
+  h1{font-size:16px;margin:0 0 4px}
+  .note{color:#777;font-size:12.5px;margin:0 0 18px}
+  .box{margin:0 0 22px}
+  .cap{font-size:12px;color:#888;margin-bottom:4px}
+  img{border:1px solid #d8d2c8;background:#fff}
+  #log{white-space:pre-wrap;font-size:12px;color:#3f5f33;background:#fff;border:1px solid #ddd;padding:8px;min-height:44px}
+</style>
+</head>
+<body>
+<h1>旁译 · 中文图片取字测试</h1>
+<p class="note">页面会自动对每张图各触发一次双击（模拟双击图片取字），间隔 9 秒。</p>
+
+<div class="box">
+  <div class="cap">① 蓝字标题图 —— 从你截图里裁下来的原图（650×130）</div>
+  <img id="a" src="title_raw.png" width="650">
+</div>
+
+<div class="box">
+  <div class="cap">② 干净对照图 —— 白底黑字，48px 微软雅黑（700×90）</div>
+  <img id="b" src="clean_cn.png" width="700">
+</div>
+
+<p id="log"></p>
+
+<script>
+(function () {
+  const logEl = document.getElementById('log');
+  const log = (t) => { logEl.textContent += t + '\n'; };
+
+  function fire(id, delay) {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) { log('找不到 ' + id); return; }
+      const r = el.getBoundingClientRect();
+      log('[' + new Date().toLocaleTimeString() + '] dblclick → ' + id +
+          '  rect ' + Math.round(r.left) + ',' + Math.round(r.top) +
+          ' ' + Math.round(r.width) + '×' + Math.round(r.height) +
+          '  dpr ' + window.devicePixelRatio);
+      el.dispatchEvent(new MouseEvent('dblclick', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0
+      }));
+    }, delay);
+  }
+
+  window.addEventListener('load', () => { fire('a', 2500); fire('b', 11500); });
+})();
+</script>
+</body>
+</html>

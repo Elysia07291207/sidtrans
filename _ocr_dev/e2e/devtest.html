@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>旁译 · 代码自检（脱离扩展环境）</title>
+<style>
+  body{margin:24px;font:14px/1.7 "Segoe UI",sans-serif;background:#f6f3ee;color:#222}
+  h1{font-size:16px;margin:0 0 8px}
+  #sel{max-width:620px;background:#fff;border:1px solid #ddd;padding:12px;line-height:2;border-radius:6px}
+  #out{white-space:pre-wrap;font:12px/1.6 Consolas,monospace;background:#141210;color:#8fdc8f;padding:12px;border-radius:6px;margin-top:16px;min-height:60px}
+</style>
+</head>
+<body>
+<h1>旁译 · 代码自检（脱离扩展环境）</h1>
+<div id="sel">The quick brown fox jumps over the lazy dog. Another sentence here so there is something to select.</div>
+<canvas id="qcanvas" width="360" height="110" style="display:block;margin-top:16px;background:#fff;border:1px solid #ddd"></canvas>
+<pre id="out"></pre>
+
+<script>
+const OUT = [];
+const log = m => { OUT.push(m); const o = document.getElementById('out'); if (o) o.textContent = OUT.join('\n'); };
+window.__log = log;
+window.onerror = (m, src, line, col, err) => {
+  log('✗ 未捕获错误: ' + m + '  @行' + line + ':' + col);
+  if (err && err.stack) log('    ' + String(err.stack).split('\n').slice(0, 4).join('\n    '));
+};
+window.addEventListener('unhandledrejection', e => {
+  log('✗ Promise 未处理: ' + ((e.reason && (e.reason.message || String(e.reason))) || '?'));
+  if (e.reason && e.reason.stack) log('    ' + String(e.reason.stack).split('\n').slice(0, 4).join('\n    '));
+});
+log('页面就绪 ' + new Date().toLocaleTimeString());
+</script>
+
+<script>
+/* chrome API 桩：刚好够 content.js 用 */
+const __store = { orb: true };   /* 自检里把悬浮球打开 */
+window.chrome = {
+  storage: {
+    local: {
+      get: (k, cb) => setTimeout(() => cb(Object.assign({}, __store)), 0),
+      set: (o, cb) => { Object.assign(__store, o); if (cb) cb(); }
+    },
+    onChanged: { addListener: () => {} }
+  },
+  runtime: {
+    getURL: p => p,
+    lastError: null,
+    onMessage: { addListener: () => {} },
+    sendMessage: (m, cb) => {
+      log('→ 发给后台: ' + JSON.stringify(m).slice(0, 100));
+      /* 自检里没有真截图。截图这条路得“有回应但不是成功”，
+         才能看出「取这块的字」到底有没有接到 runOcr 上。 */
+      if (m.type === 'capture') { setTimeout(() => cb({ ok: false, error: '桩：没有真实截图' }), 20); return; }
+      const isAns = m.mode === 'answer';
+      const isTerm = m.mode === 'term';
+      setTimeout(() => cb({
+        ok: true,
+        translated: '[桩译文] ' + String(m.text || '').slice(0, 40),
+        answer: isTerm
+          ? '译法：全过程人民民主 → whole-process people\'s democracy；共同富裕 → common prosperity\n备选：无\n说明：这段里两处需要术语化处理，其余可直译。'
+          : 'BDACA CADCB\nu 3 7',
+        mode: isAns ? 'answer' : (isTerm ? 'term' : 'translate'),
+        dir: isAns ? '答题' : (isTerm ? '术语' : '英 → 中'),
+        engine: 'stub', conf: 88
+      }), 40);
+    }
+  }
+};
+</script>
+
+<script src="content.js"></script>
+
+<script>
+log('content.js 执行完毕，__sideTransLoaded = ' + window.__sideTransLoaded);
+
+setTimeout(() => {
+  try {
+    const el = document.getElementById('sel');
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+    const b = el.getBoundingClientRect();
+    log('已选中 ' + s.toString().length + ' 字');
+    document.dispatchEvent(new MouseEvent('mouseup', {
+      bubbles: true, cancelable: true, view: window,
+      clientX: Math.round(b.left + 6), clientY: Math.round(b.top + 6), button: 0
+    }));
+    log('已派发 mouseup');
+  } catch (e) { log('✗ 派发失败: ' + e.message); }
+
+  setTimeout(() => {
+    const c = window.__stCheck ? window.__stCheck() : null;
+    log('自检口: ' + (c ? '有 ✓' : '没有 ✗（宿主没建或不是本地页面）'));
+    if (!c) return;
+    log('  visibility=' + c.vis + '  方向=' + JSON.stringify(c.dir) + '  样式=' + c.cls);
+    log('  原文: ' + JSON.stringify(c.src));
+    log('  译文: ' + JSON.stringify(c.dst));
+    log('  切换器: ' + c.modes.join(' '));
+    log('  底部按钮: ' + c.btns.join(','));
+    log('  → 点「做题」: ' + window.__stAct('answer'));
+    setTimeout(() => {
+      const d = window.__stCheck();
+      log('    现在 方向=' + JSON.stringify(d.dir) + ' 样式=' + d.cls + ' 切换器=' + d.modes.join(' '));
+      log('    译文区: ' + JSON.stringify(d.dst));
+      log('  → 点「术语」: ' + window.__stAct('term'));
+      setTimeout(() => {
+        const e = window.__stCheck();
+        log('    现在 方向=' + JSON.stringify(e.dir) + ' 样式=' + e.cls + ' 切换器=' + e.modes.join(' '));
+        log('    译文区: ' + JSON.stringify(e.dst.slice(0, 120)));
+        log('  → 点「翻译」: ' + window.__stAct('translate'));
+      }, 900);
+    }, 900);
+  }, 1500);
+
+  /* ---- 第二轮：悬浮球 / 用完即拆 ---- */
+  setTimeout(() => {
+    log('');
+    log('--- 第二轮：悬浮球 / 用完即拆 ---');
+    log('  建悬浮球: ' + window.__stAct('orb'));
+    setTimeout(() => {
+      log('  页面里有球节点吗: ' + (document.querySelector('[id^="__orb_"]') ? '有 ✓' : '没有 ✗'));
+      log('  点球开空浮层: ' + window.__stAct('openEmpty'));
+      setTimeout(() => {
+        const c2 = window.__stCheck();
+        log('    空浮层: 方向=' + JSON.stringify(c2.dir) + '  提示=' + JSON.stringify(String(c2.dst).slice(0, 26)));
+        log('  关掉: ' + window.__stAct('close'));
+        setTimeout(() => {
+          log('    关闭后页面里还有浮层吗: ' + (document.querySelector('[id^="__st_"]') ? '还有 ✗' : '已拆掉 ✓'));
+          log('    悬浮球还在吗（不该被拆）: ' + (document.querySelector('[id^="__orb_"]') ? '在 ✓' : '没了 ✗'));
+        }, 520);
+      }, 320);
+    }, 220);
+  }, 3200);
+
+  /* ---- 第三轮：画上去的字（canvas 引导） ---- */
+  /* 模拟“拖一整片却一个字都没选到”：合成 mousedown → mouseup，两点都落在 canvas 里。 */
+  const dragOver = (el) => {
+    try { window.getSelection().removeAllRanges(); } catch (e) {}
+    const r = el.getBoundingClientRect();
+    const mk = (t, x, y) => new MouseEvent(t, {
+      bubbles: true, cancelable: true, view: window,
+      clientX: Math.round(x), clientY: Math.round(y), button: 0
+    });
+    document.dispatchEvent(mk('mousedown', r.left + 6, r.top + 6));
+    document.dispatchEvent(mk('mouseup', r.left + r.width - 6, r.top + r.height - 6));
+  };
+
+  setTimeout(() => {
+    log('');
+    log('--- 第三轮：画上去的字（canvas） ---');
+    const cv = document.getElementById('qcanvas');
+    const cx = cv.getContext('2d');
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, 360, 110);
+    cx.fillStyle = '#333'; cx.font = '18px sans-serif';
+    cx.fillText('Question drawn on a canvas', 18, 60);
+    log('  canvas 在: ' + (cv ? '在 ✓' : '不在 ✗'));
+    dragOver(cv);
+    setTimeout(() => {
+      const c = window.__stCheck();
+      log('  拖过 canvas 后: visibility=' + c.vis + '  方向=' + JSON.stringify(c.dir));
+      log('  引导文案: ' + JSON.stringify(String(c.dst).slice(0, 44)));
+      log('  自检口里的 hint 按钮: ' + JSON.stringify(c.hint));
+      log('  → 点「取这块的字」: ' + window.__stAct('hintBtn'));
+      setTimeout(() => {
+        const d = window.__stCheck();
+        log('    现在 方向=' + JSON.stringify(d.dir) + '  样式=' + d.cls);
+        log('    译文区: ' + JSON.stringify(String(d.dst).slice(0, 60)));
+
+        /* ---- 第四轮：反例。拖过普通文字，不该冒引导 ---- */
+        log('');
+        log('--- 第四轮：反例（拖过普通文字） ---');
+        window.__stAct('close');
+        setTimeout(() => {
+          dragOver(document.getElementById('sel'));
+          setTimeout(() => {
+            const e = window.__stCheck();
+            log('  拖过普通文字后: ' + (e.vis === 'gone'
+              ? '浮层已拆掉 ✓（没有乱冒引导）'
+              : '浮层还亮着 ✗  方向=' + JSON.stringify(e.dir) + ' hint=' + JSON.stringify(e.hint)));
+            log('完成');
+          }, 420);
+        }, 420);
+      }, 700);
+    }, 700);
+  }, 5200);
+}, 800);
+</script>
+</body>
+</html>

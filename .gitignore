@@ -1,0 +1,39 @@
+# —— 构建产物 ——
+_build/
+
+# —— 依赖与语言包（build.ps1 从 node_modules 取，不入库）——
+_ocr_dev/node_modules/
+_ocr_dev/lang/
+_ocr_dev/package-lock.json
+
+# 自检页用的生成文件（由 selftest.ps1 / make_*.mjs 生成，改完就重跑）
+_ocr_dev/e2e/content.js
+_ocr_dev/e2e/options.js
+_ocr_dev/e2e/options_test.html
+_ocr_dev/e2e/preview.html
+_ocr_dev/e2e/icons.html
+_ocr_dev/e2e/sidtrans-*.xpi
+
+# —— 一次性调试留下的大文件 ——
+_ocr_dev/probe/
+# 当时截的调试图（体积大，而且是屏幕截图，不入公开仓库）
+_ocr_dev/btn.png
+_ocr_dev/btn2.png
+_ocr_dev/panel_crop.png
+_ocr_dev/test-ext/tesseract.min.js
+_ocr_dev/test-ext/worker.min.js
+_ocr_dev/test-ext/tesseract-core-simd-lstm.wasm
+_ocr_dev/test-ext/tesseract-core-simd-lstm.wasm.js
+_ocr_dev/test-ext/lang/
+_ocr_dev/*.log
+*.log
+
+# —— 私人内容：不进公开仓库 ——
+# 交接文档里有 AMO 凭据、邮箱、TOTP 密钥与本机路径
+项目交接*.md
+_私密/
+_design/
+_设计/
+*.secret
+.env
+.env.*

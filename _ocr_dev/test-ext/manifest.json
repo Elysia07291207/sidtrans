@@ -1,0 +1,14 @@
+{
+  "manifest_version": 2,
+  "name": "OCR-WASM-TEST",
+  "version": "0.0.1",
+  "browser_specific_settings": {
+    "gecko": { "id": "ocrwtest@pangyi.local", "strict_min_version": "115.0" }
+  },
+  "permissions": ["http://127.0.0.1:8765/*"],
+  "background": {
+    "scripts": ["tesseract.min.js", "background.js"],
+    "persistent": true
+  },
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+}

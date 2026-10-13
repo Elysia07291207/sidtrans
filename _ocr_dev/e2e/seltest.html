@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>旁译 · 划词链路测试</title>
+<style>
+  body{margin:36px;font:15px/1.75 "Segoe UI",sans-serif;background:#f6f3ee;color:#222}
+  h1{font-size:17px;margin:0 0 6px}
+  #txt{max-width:660px;background:#fff;border:1px solid #ddd;padding:14px;line-height:2;border-radius:6px}
+  #log{white-space:pre-wrap;font-size:12px;color:#3f5f33;margin-top:18px;background:#fff;border:1px solid #ddd;padding:10px;min-height:40px;border-radius:6px}
+</style>
+</head>
+<body>
+<h1>旁译 · 划词链路测试</h1>
+<div id="txt">The quick brown fox jumps over the lazy dog. This paragraph exists so the extension has something to select and translate.</div>
+<pre id="log"></pre>
+<script>
+(function () {
+  const log = t => { document.getElementById('log').textContent += t + '\n'; };
+  const report = m => { try { fetch('http://127.0.0.1:8765/report?m=' + encodeURIComponent(m)); } catch (e) {} };
+
+  function fire(tag) {
+    try {
+      const el = document.getElementById('txt');
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const r = el.getBoundingClientRect();
+      document.dispatchEvent(new MouseEvent('mouseup', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: Math.round(r.left + 8), clientY: Math.round(r.top + 8), button: 0
+      }));
+      log('[' + tag + '] 已触发划词');
+      report('PAGE-FIRE ' + tag);
+    } catch (e) { log('[' + tag + '] 失败: ' + e.message); }
+  }
+
+  window.addEventListener('load', () => {
+    log('[ready] ' + new Date().toLocaleTimeString() + ' dpr=' + window.devicePixelRatio);
+    report('PAGE-READY ' + new Date().toLocaleTimeString());
+
+    if (!sessionStorage.getItem('__st_reloaded')) {
+      sessionStorage.setItem('__st_reloaded', '1');
+      log('[第一趟] 6 秒后刷新一次，等扩展先装好');
+      setTimeout(() => location.reload(), 6000);
+    }
+
+    setTimeout(() => fire('8s'), 8000);
+    setTimeout(() => fire('16s'), 16000);
+    setTimeout(() => fire('24s'), 24000);
+    setTimeout(() => fire('32s'), 32000);
+
+    let last = '';
+    setInterval(() => {
+      const p = document.getElementById('__st_probe__');
+      const t = p ? p.textContent.trim() : '(页面上没有 #__st_probe__ → content script 没注入)';
+      if (t !== last) {
+        last = t;
+        report('PROBE [' + t.replace(/\n/g, ' | ') + ']');
+      }
+    }, 1200);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>旁译 · iframe 兼容测试（外层）</title>
+<style>
+  body{margin:22px;font:14px/1.7 "Segoe UI",sans-serif;background:#f6f3ee;color:#222}
+  h1{font-size:16px;margin:0 0 8px}
+  iframe{width:900px;height:220px;border:2px solid #aaa;border-radius:6px;background:#fff}
+  #out{white-space:pre-wrap;font:12px/1.7 Consolas,monospace;background:#141210;color:#8fdc8f;padding:12px;border-radius:6px;margin-top:14px;min-height:50px}
+</style>
+</head>
+<body>
+<h1>旁译 · iframe 兼容测试（外层）</h1>
+<p>下面这个 iframe 里跑着 content.js，它会在里面划一次词。浮层<b>应该挂在外层文档上</b>。</p>
+<iframe id="f" src="devtest_frame_inner.html"></iframe>
+<pre id="out"></pre>
+<script>
+setTimeout(() => {
+  const r = [];
+  try {
+    const c = window.__stCheck ? window.__stCheck() : null;
+    r.push('外层 window 上的自检口: ' + (c ? '有 ✓（浮层挂在外层）' : '没有 ✗'));
+    if (c) {
+      r.push('  visibility=' + c.vis + '  方向=' + JSON.stringify(c.dir));
+      r.push('  译文: ' + JSON.stringify(String(c.dst).slice(0, 60)));
+      r.push('  切换器: ' + c.modes.join(' '));
+    }
+  } catch (e) { r.push('外层读取失败: ' + e.message); }
+  /* iframe 里不该有独立的浮层 */
+  try {
+    const iw = document.getElementById('f').contentWindow;
+    r.push('iframe 内独立浮层: ' + (iw.__stHost ? '有（不该有，会被裁）✗' : '没有 ✓'));
+  } catch (e) { r.push('iframe 内部读不到: ' + e.message); }
+  document.getElementById('out').textContent = r.join('\n');
+}, 4200);
+</script>
+</body>
+</html>

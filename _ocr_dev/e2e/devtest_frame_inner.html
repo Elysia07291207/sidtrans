@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>内层</title>
+<style>
+  body{margin:16px;font:14px/1.8 "Segoe UI",sans-serif;background:#fff}
+  #sel{max-width:820px;border:1px solid #ddd;padding:10px;line-height:2;border-radius:5px}
+</style>
+</head>
+<body>
+<div id="sel">The quick brown fox jumps over the lazy dog. This sentence lives inside an iframe, which is exactly what an online exam system looks like.</div>
+<pre id="log"></pre>
+
+<script>
+window.chrome = {
+  storage: {
+    local: {
+      get: (k, cb) => setTimeout(() => cb({}), 0),
+      set: (o, cb) => { if (cb) cb(); }
+    },
+    onChanged: { addListener: () => {} }
+  },
+  runtime: {
+    getURL: p => p,
+    lastError: null,
+    onMessage: { addListener: () => {} },
+    sendMessage: (m, cb) => {
+      const isAns = m.mode === 'answer';
+      const isTerm = m.mode === 'term';
+      setTimeout(() => cb({
+        ok: true,
+        translated: '[桩译文·来自iframe] ' + String(m.text || '').slice(0, 30),
+        answer: isTerm ? '译法：test term\n备选：无\n说明：这是 iframe 里的术语测试。' : 'BDACA\n',
+        mode: isAns ? 'answer' : (isTerm ? 'term' : 'translate'),
+        dir: isAns ? '答题' : (isTerm ? '术语' : '英 → 中'),
+        engine: 'stub', conf: 90
+      }), 40);
+    }
+  }
+};
+</script>
+
+<script src="content.js"></script>
+
+<script>
+setTimeout(() => {
+  try {
+    const el = document.getElementById('sel');
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+    const b = el.getBoundingClientRect();
+    document.dispatchEvent(new MouseEvent('mouseup', {
+      bubbles: true, cancelable: true, view: window,
+      clientX: Math.round(b.left + 6), clientY: Math.round(b.top + 6), button: 0
+    }));
+  } catch (e) {}
+}, 900);
+</script>
+</body>
+</html>

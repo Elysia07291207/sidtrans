@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PANGYI-OCR-WAITING</title>
+<style>
+  body{font-family:"Microsoft YaHei",sans-serif;background:#faf8f5;margin:0;padding:30px}
+  h3{margin:0 0 14px;font-weight:600;color:#333}
+  #shot{display:block;border:1px solid #ddd;background:#fff}
+  .note{margin-top:18px;color:#888;font-size:13px}
+</style>
+</head>
+<body>
+<h3>双击下面这张图，应该自动取字并翻译</h3>
+<img id="shot" src="test.png" width="720" height="160" alt="测试图">
+<p class="note">如果浮层出现、并且译文出来，就说明整条链通了。</p>
+
+<script>
+(function () {
+  var n = 0, fired = 0, done = false;
+  function fire() {
+    var img = document.getElementById('shot');
+    if (!img) return;
+    var r = img.getBoundingClientRect();
+    var opt = { bubbles: true, cancelable: true, view: window,
+                clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    img.dispatchEvent(new MouseEvent('dblclick', opt));
+    fired++;
+  }
+  var iv = setInterval(function () {
+    n++;
+    if (done) return;
+    var h = document.getElementById('__sidtrans_host__');
+    if (!h) {
+      if (n <= 30 && n % 5 === 1) fire();
+      document.title = 'NO_HOST_YET_' + n + '_fired' + fired;
+      return;
+    }
+    var d = h.shadowRoot && h.shadowRoot.querySelector('.st-dst');
+    var s = h.shadowRoot && h.shadowRoot.querySelector('.st-src');
+    var e = h.shadowRoot && h.shadowRoot.querySelector('.st-engine');
+    var dst = d ? (d.textContent || '') : '';
+    var src = s ? (s.textContent || '') : '';
+    if (dst && dst !== '取字中…' && dst !== '翻译中…' && dst !== '（正在看图…）') {
+      done = true; clearInterval(iv);
+      document.title = 'RESULT|OCR:' + src.slice(0, 60) + '|TR:' + dst.slice(0, 60) + '|E:' + (e ? e.textContent : '');
+    } else {
+      document.title = 'HOST_OK|' + dst.slice(0, 30) + '|src=' + src.slice(0, 30);
+    }
+  }, 800);
+})();
+</script>
+</body>
+</html>

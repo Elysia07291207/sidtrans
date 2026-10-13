@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>旁译 · 设置</title>
+<style>
+  :root{
+    /* 浅色（默认）：暖白奶油 */
+    --bg:#F6F0E7; --card:#FFFDFA; --line:#E4D8C8; --line2:#C5AE98;
+    --text:#332B26; --dim:#6F6257; --dim2:#938276;
+    --accent:#A85F68; --accent2:#8E4E56; --onfg:#FFF8F3;
+    --ok:#7D9A72; --err:#B84E4E;
+    --inp:#FFF9F1; --btn:#FBF5EC; --btn-h:#F1E7D9;
+  }
+  /* 深色（备选）：暖黑 + 金色。跟浮层的深色是同一套字义。 */
+  body[data-theme="dark"]{
+    --bg:#181716; --card:#211F1D; --line:#3C3834; --line2:#554D46;
+    --text:#F4EEE6; --dim:#B7AEA4; --dim2:#817870;
+    --accent:#D6A85A; --accent2:#E0B978; --onfg:#191714;
+    --ok:#A8D49C; --err:#EE887B;
+    --inp:#151310; --btn:#26221C; --btn-h:#332E26;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.65 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    padding:28px 20px 60px}
+  .wrap{max-width:720px;margin:0 auto}
+  h1{font-size:19px;margin:0 0 4px;letter-spacing:.01em}
+  h1 small{font-size:12px;color:var(--dim2);font-weight:400;margin-left:8px}
+  .sub{color:var(--dim);font-size:12.5px;margin:0 0 22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+  .card h2{font-size:13px;margin:0 0 12px;color:#e0b075;letter-spacing:.06em;font-weight:600}
+  .row{display:flex;gap:12px;align-items:center;margin-bottom:11px}
+  .row:last-child{margin-bottom:0}
+  .row > label{flex:0 0 108px;color:var(--dim);font-size:12.5px}
+  input[type=text],input[type=password],input[type=number],select,textarea{
+    flex:1;min-width:0;background:var(--inp);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);padding:7px 10px;font:inherit;font-size:13px;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  textarea{min-height:64px;resize:vertical;line-height:1.6}
+  .hint{color:var(--dim2);font-size:11.5px;margin:6px 0 0 120px}
+  /* 右列里面的小字说明：不缩进到标签列，跟着控件走 */
+  .hint2{color:var(--dim2);font-size:11.5px;margin:8px 0 0;line-height:1.5}
+  .seg{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:1}
+  .seg button{flex:1;appearance:none;border:0;border-right:1px solid var(--line);background:transparent;
+    color:var(--dim);font:inherit;font-size:12.5px;padding:7px 6px;cursor:pointer;transition:.15s}
+  .seg button:last-child{border-right:0}
+  .seg button:hover{background:var(--btn-h);color:var(--text)}
+  .seg button.on{background:var(--accent);color:var(--onfg);font-weight:600}
+  .sw{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+  .sw input{width:16px;height:16px;accent-color:var(--accent)}
+  .foot{display:flex;align-items:center;gap:12px;margin-top:18px}
+  .btn{appearance:none;border:1px solid var(--line2);background:var(--btn);color:var(--text);
+    font:inherit;font-size:13px;padding:8px 18px;border-radius:9px;cursor:pointer}
+  .btn:hover{background:var(--btn-h)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--onfg);font-weight:600}
+  .btn.primary:hover{background:var(--accent2)}
+  .msg{font-size:12.5px;color:var(--ok)}
+  .msg.err{color:var(--err)}
+  .probe{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+  .probe .out{background:var(--inp);border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+    margin-top:9px;font-size:13px;color:var(--text);min-height:20px;white-space:pre-wrap;word-break:break-word}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>旁译 <small>SideTrans</small></h1>
+  <p class="sub">划词即译，译文落在选区旁边；中英自动互转，并留一块地方让你写。</p>
+
+  <div class="card">
+    <h2>开关</h2>
+    <div class="row">
+      <label>划词翻译</label>
+      <label class="sw"><input type="checkbox" id="enabled"><span>启用</span></label>
+    </div>
+    <div class="row">
+      <label>自动翻译</label>
+      <label class="sw"><input type="checkbox" id="autoTranslate"><span>选中后立刻译</span></label>
+    </div>
+    <div class="row">
+      <label>最长划词</label>
+      <input type="number" id="maxLen" min="200" max="20000" step="100">
+      <span style="color:var(--dim2);font-size:12px">字符</span>
+    </div>
+    <p class="hint">超过这个长度就不翻了。长文会自动分段逐段翻，所以这个数可以放心调大。</p>
+    <div class="row">
+      <label>悬浮球</label>
+      <label class="sw"><input type="checkbox" id="orb"><span>在页面角落显示一个小圆点</span></label>
+    </div>
+    <p class="hint">点它就能开一个空浮层，把别处复制的文字粘进去、按 Ctrl+Enter 处理。
+      <strong>不能划词的地方靠它</strong>（它也能拖到别的位置）。默认关。</p>
+    <div class="row">
+      <label>界面主题</label>
+      <div class="seg" id="panelTheme">
+        <button data-v="light">浅色 · 暖白</button>
+        <button data-v="dark">深色 · 暖黑</button>
+      </div>
+    </div>
+    <p class="hint">浮层和这个设置页一起换。考场里浅色不惹眼；白底网页太多、或者晚上，换深色。
+      换主题只换颜色，字号和按钮位置不变。</p>
+  </div>
+
+  <div class="card">
+    <h2>划词后做什么</h2>
+    <div class="row">
+      <label>默认动作</label>
+      <div class="seg" id="actionMode">
+        <button data-v="translate">翻译</button>
+        <button data-v="answer">当题做</button>
+        <button data-v="term">术语</button>
+      </div>
+    </div>
+    <p class="hint">「当题做」= 把划中的内容当成题目，<strong>只给答案不翻译</strong>，适合完形填空 / 选词填空。
+      「术语」= 给官方英文译法 + 备选 + 说明，适合笔译赛的术语题。<br>
+      考试前先切好，划中就直接出；平时切回「翻译」。这三颗在浮层里也能随时点。</p>
+    <div class="row" style="margin-top:12px">
+      <label>译文风格</label>
+      <div class="seg" id="transStyle">
+        <button data-v="daily">日常</button>
+        <button data-v="lit">笔译赛</button>
+      </div>
+    </div>
+    <p class="hint">「笔译赛」= 按英语读者的习惯重排句子、不逐词对应、用词偏书面，
+      专名首次出现可补原文。只影响「翻译」模式。</p>
+    <div class="row" style="margin-top:12px">
+      <label>做题时</label>
+      <div class="seg" id="answerExplain">
+        <button data-v="off">只给答案</button>
+        <button data-v="on">答案 + 解析</button>
+      </div>
+    </div>
+    <p class="hint">「只给答案」是默认：考场上你要的就是那一眼，不浪费几秒。
+      「答案 + 解析」会在答案下面逐空说明为什么这么选（词义 / 搭配 / 语法），适合事后弄懂这道题。<br>
+      做题的时候浮层里也会多出一颗「看解析」，随手就能翻过来，不用回这里改。</p>
+  </div>
+
+  <div class="card">
+    <h2>方向</h2>
+    <div class="row">
+      <label>目标语言</label>
+      <div class="seg" id="targetMode">
+        <button data-v="auto">自动双向</button>
+        <button data-v="zh">固定译成中文</button>
+        <button data-v="en">固定译成英文</button>
+      </div>
+    </div>
+    <p class="hint">「自动双向」= 选中中文就译成英文，选中英文就译成中文。</p>
+  </div>
+
+  <div class="card">
+    <h2>翻译引擎</h2>
+    <div class="row">
+      <label>引擎</label>
+      <div class="seg" id="engine">
+        <button data-v="mymemory">免费在线</button>
+        <button data-v="openai">API（BYOK）</button>
+        <button data-v="local">本地服务</button>
+      </div>
+    </div>
+    <p class="hint" id="engineHint"></p>
+  </div>
+
+  <div class="card" id="box-openai">
+    <h2>OpenAI 兼容接口</h2>
+    <div class="row"><label>接口地址</label><input type="text" id="oa-base" placeholder="https://api.deepseek.com/v1"></div>
+    <div class="row"><label>API Key</label><input type="password" id="oa-key" placeholder="sk-..."></div>
+    <div class="row"><label>模型</label><input type="text" id="oa-model" placeholder="deepseek-chat"></div>
+    <div class="row" style="align-items:flex-start">
+      <label style="padding-top:7px">常用预设</label>
+      <div style="flex:1;min-width:0">
+        <div class="seg" id="promptPreset">
+          <button data-p="none">默认</button>
+          <button data-p="lit">笔译风格</button>
+          <button data-p="academic">学术论文</button>
+          <button data-p="tech">技术文档</button>
+          <button data-p="casual">日常口语</button>
+        </div>
+        <p class="hint2" id="presetHint"></p>
+      </div>
+    </div>
+    <div class="row" style="align-items:flex-start"><label style="padding-top:7px">领域提示词</label>
+      <textarea id="oa-prompt" placeholder="留空就只用扩展自带的那套。这里写的内容会当作「角色与文风」加在自带规则之前，选上面的预设就是填这一格。"></textarea></div>
+    <p class="hint">选完预设还能在这个框里接着改，改了就只算你自己的。
+      Key 只存在本机浏览器里，不上传任何地方。</p>
+  </div>
+
+  <div class="card" id="box-local">
+    <h2>本地服务</h2>
+    <div class="row"><label>地址</label><input type="text" id="lc-url" placeholder="http://127.0.0.1:8787/translate"></div>
+    <p class="hint">本机跑一个翻译服务，POST <code>{"text":"…","from":"en","to":"zh-CN"}</code>，返回 <code>{"text":"…"}</code>。这样全程离线，文本不出本机。</p>
+  </div>
+
+  <div class="card">
+    <h2>诊断</h2>
+    <div class="row">
+      <label>错误日志</label>
+      <button class="btn" id="logExport" style="padding:6px 14px">导出诊断日志</button>
+      <button class="btn" id="logClear" style="padding:6px 14px">清空</button>
+    </div>
+    <p class="hint">只记「哪一步、什么错、页面结构摘要」，<strong>不记你翻过的内容</strong>。
+      哪一步不对劲时导出来给我，比口述快得多。</p>
+    <div class="probe hide" id="logBox"><div class="out" id="logOut"></div></div>
+  </div>
+
+  <div class="foot">
+    <button class="btn primary" id="save">保存</button>
+    <button class="btn" id="test">测一句</button>
+    <button class="btn" id="testJunk">测乱码</button>
+    <span class="msg" id="msg"></span>
+  </div>
+
+  <div class="probe hide" id="probe">
+    <div class="out" id="probeOut"></div>
+  </div>
+</div>
+<script src="options.js"></script>
+</body>
+</html>

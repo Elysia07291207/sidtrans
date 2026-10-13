@@ -1,0 +1,48 @@
+{
+  "manifest_version": 2,
+  "name": "旁译 · SideTrans",
+  "version": "0.4.0",
+  "description": "划词即译，译文落在旁边；双击图片自动取字；中英自动互转，并留一块地方让你写。",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "sidtrans@pangyi.local",
+      "strict_min_version": "115.0"
+    }
+  },
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "https://api.mymemory.translated.net/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["tesseract.min.js", "background.js"],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "browser_action": {
+    "default_title": "旁译 · 点我框选取字",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+}

@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "旁译 · SideTrans",
+  "version": "0.1.0",
+  "description": "划词即译，译文落在旁边；中英自动互转，并留一块地方让你写。",
+  "minimum_chrome_version": "110",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.mymemory.translated.net/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "旁译 · 设置"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}
