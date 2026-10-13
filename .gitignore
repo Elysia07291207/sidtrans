@@ -1,5 +1,6 @@
 # —— 构建产物 ——
 _build/
+dist/
 
 # —— 依赖与语言包（build.ps1 从 node_modules 取，不入库）——
 _ocr_dev/node_modules/
@@ -12,6 +13,7 @@ _ocr_dev/e2e/options.js
 _ocr_dev/e2e/options_test.html
 _ocr_dev/e2e/preview.html
 _ocr_dev/e2e/icons.html
+_ocr_dev/e2e/store-*.html
 _ocr_dev/e2e/sidtrans-*.xpi
 
 # —— 一次性调试留下的大文件 ——

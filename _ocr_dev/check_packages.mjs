@@ -7,6 +7,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -72,7 +73,59 @@ for (const c of CASES) {
   bad += miss2;
 }
 
+/* ---------- 商店上架包（dist\） ---------- */
+console.log('\n=== 商店上架包 ===');
+const dist = path.join(root, 'dist');
+if (!fs.existsSync(dist)) {
+  console.log('  ⚠ 还没出商店包（跑 package.ps1）。跳过这几项。');
+} else {
+  const ver = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')).version;
+  const zips = [
+    { f: `sidtrans-${ver}-firefox-mv2.zip`, need: ['manifest.json', 'icons/icon-128.png'] },
+    { f: `sidtrans-${ver}-chromium-mv3.zip`, need: ['manifest.json', 'icons/icon-128.png', 'offscreen.html', 'offscreen.js'] }
+  ];
+  for (const z of zips) {
+    const p = path.join(dist, z.f);
+    if (!fs.existsSync(p)) { console.log('  ✗ 缺 ' + z.f); bad++; continue; }
+    /* 关键：zip 的根目录要有 manifest.json，而且不能套一层文件夹。
+       条目顺序无所谓——我第一版写成「第一项必须是 manifest.json」，
+       那是把尺子做紧了，不是包错了。 */
+    const r = spawnSync('tar', ['-tf', p], { encoding: 'utf8' });
+    const entries = String(r.stdout || '').split(/\r?\n/).filter(Boolean);
+    console.log('  ' + z.f + '：' + entries.length + ' 项，' + Math.round(fs.statSync(p).size / 1024 / 1024 * 10) / 10 + ' MB');
+    if (entries.indexOf('manifest.json') === -1) { console.log('    ✗ 根目录没有 manifest.json——商店会直接拒'); bad++; }
+    const wrapped = entries.filter(e => /^(unpacked|sidtrans|_build|dist)\//.test(e));
+    if (wrapped.length) { console.log('    ✗ 包里套了一层文件夹（如 ' + wrapped[0] + '）'); bad++; }
+    for (const n of z.need) {
+      if (entries.indexOf(n) === -1) { console.log('    ✗ 包里缺 ' + n); bad++; }
+    }
+  }
+
+  const store = path.join(dist, 'store');
+  for (const n of ['icon-128.png', 'icon-300.png']) {
+    const p = path.join(store, n);
+    if (!fs.existsSync(p)) { console.log('  ✗ 缺 store/' + n); bad++; continue; }
+    const b = fs.readFileSync(p);
+    const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+    const want = Number(n.match(/icon-(\d+)/)[1]);
+    const okDim = w === want && h === want;
+    console.log('  store/' + n + '：' + w + '×' + h + (okDim ? ' ✓' : ' ✗ 应为 ' + want + '²'));
+    if (!okDim) bad++;
+  }
+
+  const sh = path.join(store, 'screenshots');
+  const shots = fs.existsSync(sh) ? fs.readdirSync(sh).filter(f => /\.png$/i.test(f)) : [];
+  if (!shots.length) { console.log('  ✗ 没有商店截图（跑 make_store_shots.mjs）'); bad++; }
+  for (const f of shots) {
+    const b = fs.readFileSync(path.join(sh, f));
+    const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+    const okDim = w === 1280 && h === 800;
+    console.log('  store/screenshots/' + f + '：' + w + '×' + h + (okDim ? ' ✓' : ' ✗ 商店要 1280×800'));
+    if (!okDim) bad++;
+  }
+}
+
 console.log('');
-if (bad === 0) console.log('✓ 两个包都是完整的');
-else console.log('× 有 ' + bad + ' 处问题——浏览器会拒绝加载，别发');
+if (bad === 0) console.log('✓ 两个包 + 商店素材都是完整的');
+else console.log('× 有 ' + bad + ' 处问题——商店会拒，别发');
 process.exit(bad ? 1 : 0);

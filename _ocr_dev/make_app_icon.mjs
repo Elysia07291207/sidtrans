@@ -105,9 +105,11 @@ function encodePng(px, rgba) {
   ]);
 }
 
-/* ---------- 出三（四）个尺寸 ---------- */
+/* ---------- 出图标 ---------- */
+/* 16/32 给工具栏，48/96 给扩展管理页，128 是商店列表要的，
+   300 是 Edge 商店要的方形 logo。几何完全一样，只是尺寸不同。 */
 fs.mkdirSync(OUT, { recursive: true });
-const SIZES = [[16, 8], [32, 6], [48, 4], [96, 3]];
+const SIZES = [[16, 8], [32, 6], [48, 4], [96, 3], [128, 3], [300, 2]];
 for (const [px, ss] of SIZES) {
   const rgba = render(px, ss);
   const buf = encodePng(px, rgba);

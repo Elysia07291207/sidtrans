@@ -48,8 +48,10 @@ FlashTrans 靠全局热键 + 置顶小窗，按下去浏览器会失焦；旁译
 
 | 浏览器 | 状态 | 说明 |
 |---|---|---|
-| **Firefox** 115+ | ✅ 可用 | MV2，后台常驻页，OCR 直接跑 |
-| Chrome / Edge | ❌ 未适配 | 只收 MV3，而后台是 service worker：没有 DOM、不能用 Blob 建 Worker，现在的 OCR 那条路走不通。方案是用 `chrome.offscreen` 放一个离屏文档来跑 Tesseract，正在做 |
+| **Firefox** 115+ | ✅ 可用 | MV2。后台常驻页，OCR 直接跑 |
+| **Chrome / Edge** 109+ | ✅ 已适配（MV3） | MV3 的后台是 service worker（没 DOM、不能用 Blob 建 Worker），所以 OCR 放到**离屏文档**里跑。注入、浮层、截图、离屏 OCR、框选、设置页都已在 Edge 上做过自动化实测 |
+
+上架包：`dist/` 里两个 zip（Chromium 那份 Edge 与 Chrome 通用）。
 
 ---
 
@@ -123,12 +125,14 @@ Content-Type: application/json
 ```
 旁译/
 ├─ manifest.json            Firefox 清单（MV2）
-├─ manifest.chromium.json   Chromium 清单（MV3，适配中）
-├─ background.js            语言判定 + 三个引擎 + OCR + 消息路由
+├─ manifest.chromium.json   Chromium 清单（MV3，含离屏 OCR）
+├─ background.js            语言判定 + 三个引擎 + OCR 宿主 + 消息路由
 ├─ content.js               划词监听 + 阴影 DOM 浮层 + 写作框 + 取字
+├─ offscreen.html / .js     Chromium 侧跑 Tesseract 的离屏文档（Firefox 用不到）
 ├─ options.html / options.js 设置页（引擎、方向、提示词、主题）
-├─ icons/                   图标（16/32/48/96）
-├─ build.ps1                打包
+├─ icons/                   图标（16/32/48/96/128/300）
+├─ build.ps1                打包（Firefox + Chromium 两份）
+├─ package.ps1              出商店上架包与素材（dist/）
 ├─ sign.ps1                 打包 + 提交 AMO 签名
 └─ _ocr_dev/                开发与自检（测试页、探针、自检脚本）
 ```
@@ -162,8 +166,8 @@ powershell -ExecutionPolicy Bypass -File .\_ocr_dev\selftest.ps1
 
 ## Roadmap
 
-- [ ] Chrome / Edge 适配：抽出一层「OCR 宿主」，Chrome 侧走 `chrome.offscreen`
-- [ ] 上架 Edge Add-ons / Chrome Web Store
+- [x] Chrome / Edge 适配：抽出一层「OCR 宿主」，Chromium 侧走 `chrome.offscreen`
+- [ ] 上架 Edge Add-ons / Chrome Web Store（上架资料在 `STORE_LISTING.md`）
 - [ ] 离线引擎：接一个本地小模型服务（NLLB / Opus-MT / GGUF）
 - [ ] 快捷键触发（不自动译，按一下才译）
 
